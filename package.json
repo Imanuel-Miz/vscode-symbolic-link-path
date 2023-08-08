@@ -4,14 +4,14 @@
   "description": "Adding the ability to go to the source file of a symbolic link file",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.73.0"
+    "vscode": "^1.75.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:goToSymbolicLink"
-  ],
+  "repository": {
+    "url": "https://github.com/Imanuel-Miz/vscode-symbolic-link-path"
+  },
   "main": "./extension.js",
   "contributes": {
     "commands": [
