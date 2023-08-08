@@ -12,6 +12,7 @@
   "repository": {
     "url": "https://github.com/Imanuel-Miz/vscode-symbolic-link-path"
   },
+  "activationEvents": ["onStartupFinished"],
   "main": "./extension.js",
   "contributes": {
     "commands": [
