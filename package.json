@@ -3,7 +3,7 @@
   "publisher": "ima-miz-vscode",
   "displayName": "Open full realpath",
   "description": "Adding the ability to go to the source file of a symbolic link file",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.75.0"
   },
