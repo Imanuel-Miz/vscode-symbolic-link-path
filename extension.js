@@ -11,54 +11,60 @@ var child_process = require('child_process');
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-	
-	function getSystemDirCmd() {
-		if (isWin) {
-			return 'dir'
-		}
-		else {
-			return 'ls -l'
-		}
-	}
 
-	function systemSync(cmd) {
-		return child_process.execSync(cmd).toString();
-	  }
+  function systemSync(cmd) {
+    return child_process.execSync(cmd).toString();
+  }
 
-	function getSymlinikFilePath(originFilePath, checkPathCmd) {
-		if (isWin) {
-			const pattern = /\[([^]]+)\]/;
-			const match = checkPathCmd.match(pattern);
-			return match[1];
-		}
-		else {
-			let shellExec = systemSync(`realpath ${originFilePath}`);
-			return shellExec.replace(/[\r\n]/gm, '');
-		}
-	}
+  let disposable = vscode.commands.registerCommand('goToSymbolicLink', fs => {
+    // The code you place here will be executed every time your command is executed
+    const originFilePath = fs.path;
+    let fullSourcePath = originFilePath
+    if (isWin) {
+      // Remove the first "/"
+      const withoutFirstSlash = originFilePath.replace(/^\/+/, '');
+      // Replace all "/" with "\"
+      const winPath = withoutFirstSlash.replace(/\//g, '\\');
 
-	let disposable = vscode.commands.registerCommand('goToSymbolicLink', fs => {
-		// The code you place here will be executed every time your command is executed
+      let checkPathCmd = systemSync(`dir ${winPath}`)
+      if (checkPathCmd.includes('<SYMLINK>')) {
+        const pattern = /<SYMLINK>\s+(.*)\s+\[([^[\]]+)\]/;
 
-		// Display a message box to the user
-		let originFilePath = fs.path;
-		let checkPathCmd = systemSync(`${getSystemDirCmd()} ${originFilePath}`);
-		if (checkPathCmd.includes(' -> ') || checkPathCmd.includes('SYMLINK')) {
-			let filePath = getSymlinikFilePath(originFilePath, checkPathCmd)
-			console.log(`Path of realpath is ${filePath}`);
-			let uri = vscode.Uri.file(filePath);
-			console.log(`URI path is ${uri}`);
-			vscode.commands.executeCommand('vscode.openFolder', uri)
-		}
-	});
+        const match = winPath.match(pattern);
+        if (match) {
+          const symbolicLink = match[1];
+          const targetPath = match[2];
+          console.log("Symbolic Link:", symbolicLink);
+          console.log("Target Path:", targetPath);
 
-	context.subscriptions.push(disposable);
+          if (!targetPath.includes(":")) {
+            fullSourcePath = winPath.replace(symbolicLink, targetPath)
+          } else {
+            fullSourcePath = targetPath
+          }
+        }
+      }
+    } else {
+
+      let checkPathCmd = systemSync(`ls -l ${originFilePath}`);
+      if (checkPathCmd.includes(' -> ')) {
+        let shellExec = systemSync(`realpath ${originFilePath}`);
+        fullSourcePath = shellExec.replace(/[\r\n]/gm, '');
+        console.log(`Path of realpath is ${fullSourcePath}`);
+      }
+      let uri = vscode.Uri.file(fullSourcePath);
+      console.log(`URI path is ${uri}`);
+      vscode.commands.executeCommand('vscode.openFolder', uri)
+    }
+  });
+
+  context.subscriptions.push(disposable);
 }
 
 // This method is called when your extension is deactivated
 function deactivate() {}
 
 module.exports = {
-	activate,
-	deactivate
+  activate,
+  deactivate
 }
