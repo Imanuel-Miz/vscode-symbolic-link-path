@@ -2,7 +2,6 @@
 
 All notable changes to the "symbolic-link-path" extension will be documented in this file.
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
 ## v0.0.1
 
@@ -10,3 +9,6 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## v0.0.2
 - fixed windows support bug
+
+## v0.0.3
+- added support for powershell windows prompt
