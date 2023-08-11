@@ -7,8 +7,5 @@ All notable changes to the "symbolic-link-path" extension will be documented in 
 
 - Initial release
 
-## v0.0.2
+## v0.0.5
 - fixed windows support bug
-
-## v0.0.3
-- added support for powershell windows prompt

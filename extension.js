@@ -1,3 +1,4 @@
+
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const isWin = process.platform === "win32";
@@ -28,9 +29,11 @@ function activate(context) {
 
   function getWindowsPathCheck(winPath) {
     if (isPowershell()) {
+      console.log(`system is using powershell`)
       return systemSync(`cmd /c "dir ${winPath}"`);
     }
     else {
+      console.log(`system is using cmd`)
       return systemSync(`dir ${winPath}`);
     }
   }
@@ -47,9 +50,11 @@ function activate(context) {
 
       let checkPathCmd = getWindowsPathCheck(winPath);
       if (checkPathCmd.includes('<SYMLINK>')) {
+        console.log(`checkPathCmd includes SYMLINK`)
         const pattern = /<SYMLINK>\s+(.*)\s+\[([^[\]]+)\]/;
 
-        const match = winPath.match(pattern);
+        const match = checkPathCmd.match(pattern);
+        console.log(`match value is: ${JSON.stringify(match, undefined, 4)}`)
         if (match) {
           const symbolicLink = match[1];
           const targetPath = match[2];
@@ -57,6 +62,7 @@ function activate(context) {
           console.log("Target Path:", targetPath);
 
           if (!targetPath.includes(":")) {
+            console.log(`taregt path does not include :`)
             fullSourcePath = winPath.replace(symbolicLink, targetPath)
           } else {
             fullSourcePath = targetPath;
@@ -71,9 +77,14 @@ function activate(context) {
         fullSourcePath = shellExec.replace(/[\r\n]/gm, '');
         console.log(`Path of realpath is ${fullSourcePath}`);
       }
+    }
+    if (fs.existsSync(fullSourcePath)) {
       let uri = vscode.Uri.file(fullSourcePath);
       console.log(`URI path is ${uri}`);
       vscode.commands.executeCommand('vscode.openFolder', uri)
+    }
+    else {
+      console.log(`Unable to resolve the symbolic link path ${fullSourcePath}, to an actual path in the system`);
     }
   });
 
