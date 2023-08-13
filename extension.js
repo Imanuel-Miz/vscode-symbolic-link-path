@@ -3,6 +3,7 @@
 // Import the module and reference it with the alias vscode in your code below
 const isWin = process.platform === "win32";
 const vscode = require('vscode');
+const fs = require('fs')
 var child_process = require('child_process');
 
 // This method is called when your extension is activated
@@ -17,59 +18,23 @@ function activate(context) {
     return child_process.execSync(cmd).toString();
   }
 
-  function isPowershell() {
-    try {
-      systemSync('Get-Host')
-      return true;
-    }
-    catch (error) {
-      return false;
-    }
-  }
-
-  function getWindowsPathCheck(winPath) {
-    if (isPowershell()) {
-      console.log(`system is using powershell`)
-      return systemSync(`cmd /c "dir ${winPath}"`);
-    }
-    else {
-      console.log(`system is using cmd`)
-      return systemSync(`dir ${winPath}`);
-    }
-  }
-
-  let disposable = vscode.commands.registerCommand('goToSymbolicLink', fs => {
+  let disposable = vscode.commands.registerCommand('goToSymbolicLink', file => {
     // The code you place here will be executed every time your command is executed
-    const originFilePath = fs.path;
+    const originFilePath = file.path;
     let fullSourcePath = originFilePath;
     if (isWin) {
       // Windows flow
       const withoutFirstSlash = originFilePath.replace(/^\/+/, '');
       // Replace all "/" with "\"
       const winPath = withoutFirstSlash.replace(/\//g, '\\');
-
-      let checkPathCmd = getWindowsPathCheck(winPath);
-      if (checkPathCmd.includes('<SYMLINK>')) {
-        console.log(`checkPathCmd includes SYMLINK`)
-        const pattern = /<SYMLINK>\s+(.*)\s+\[([^[\]]+)\]/;
-
-        const match = checkPathCmd.match(pattern);
-        console.log(`match value is: ${JSON.stringify(match, undefined, 4)}`)
-        if (match) {
-          const symbolicLink = match[1];
-          const targetPath = match[2];
-          console.log("Symbolic Link:", symbolicLink);
-          console.log("Target Path:", targetPath);
-
-          if (!targetPath.includes(":")) {
-            console.log(`taregt path does not include :`)
-            fullSourcePath = winPath.replace(symbolicLink, targetPath)
-          } else {
-            fullSourcePath = targetPath;
-          }
+      if (fs.statSync(winPath).isSymbolicLink()) {
+        const targetPath = fs.readlinkSync(winPath)
+        if (targetPath.includes(":")) {
+          fullSourcePath = targetPath;
         }
       }
-    } else {
+      }
+    else {
       // UNIX flow
       let checkPathCmd = systemSync(`ls -l ${originFilePath}`);
       if (checkPathCmd.includes(' -> ')) {
