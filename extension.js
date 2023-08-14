@@ -4,6 +4,7 @@
 const isWin = process.platform === "win32";
 const vscode = require('vscode');
 const fs = require('fs')
+const path = require('path');
 var child_process = require('child_process');
 
 // This method is called when your extension is activated
@@ -31,6 +32,10 @@ function activate(context) {
         const targetPath = fs.readlinkSync(winPath)
         if (targetPath.includes(":")) {
           fullSourcePath = targetPath;
+        }
+        else {
+          const resolvedPath = path.resolve(path.dirname(winPath), targetPath);
+          fullSourcePath = resolvedPath;
         }
       }
       }
