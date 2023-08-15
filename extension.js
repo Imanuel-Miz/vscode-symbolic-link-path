@@ -5,6 +5,7 @@ const isWin = process.platform === "win32";
 const vscode = require('vscode');
 const fs = require('fs')
 const path = require('path');
+const outputChannel = vscode.window.createOutputChannel('Open real path', 'rust');
 var child_process = require('child_process');
 
 // This method is called when your extension is activated
@@ -19,6 +20,42 @@ function activate(context) {
     return child_process.execSync(cmd).toString();
   }
 
+  function isPowershell() {
+    try {
+      systemSync('Get-Host')
+      return true;
+    }
+    catch (error) {
+      return false;
+    }
+  }
+
+  function getWindowsPathCheck(winPath) {
+    if (isPowershell()) {
+      return systemSync(`cmd /c "dir ${winPath}"`);
+    }
+    else {
+      return systemSync(`dir ${winPath}`);
+    }
+  }
+
+  function reverseFileSearch(currentPath, target) {
+    const filePath = path.join(currentPath, target);
+    
+    if (fs.existsSync(filePath)) {
+      return filePath;
+    }
+    
+    const parentPath = path.dirname(currentPath);
+    
+    // Stop the search if the parent path is the root directory
+    if (parentPath === currentPath) {
+      return null;
+    }
+    
+    return reverseFileSearch(parentPath, target);
+  }
+
   let disposable = vscode.commands.registerCommand('goToSymbolicLink', file => {
     // The code you place here will be executed every time your command is executed
     const originFilePath = file.path;
@@ -28,17 +65,28 @@ function activate(context) {
       const withoutFirstSlash = originFilePath.replace(/^\/+/, '');
       // Replace all "/" with "\"
       const winPath = withoutFirstSlash.replace(/\//g, '\\');
-      if (fs.statSync(winPath).isSymbolicLink()) {
-        const targetPath = fs.readlinkSync(winPath)
-        if (targetPath.includes(":")) {
+      fullSourcePath = winPath
+      let checkPathCmd = getWindowsPathCheck(winPath);
+      if (checkPathCmd.includes('<SYMLINK>')) {
+        const pattern = /<SYMLINK>\s+(.*)\s+\[([^[\]]+)\]/;
+
+        const match = checkPathCmd.match(pattern);
+        if (match) {
+          const symbolicLink = match[1];
+          const targetPath = match[2];
+          console.log("Symbolic Link:", symbolicLink);
+          console.log("Target Path:", targetPath);
+
+          if (targetPath.includes(":")) {
           fullSourcePath = targetPath;
         }
         else {
-          const resolvedPath = path.resolve(path.dirname(winPath), targetPath);
+          const resolvedPath = reverseFileSearch(path.dirname(winPath), targetPath)
           fullSourcePath = resolvedPath;
         }
+        }
       }
-      }
+    }
     else {
       // UNIX flow
       let checkPathCmd = systemSync(`ls -l ${originFilePath}`);
@@ -49,11 +97,15 @@ function activate(context) {
       }
     }
     if (fs.existsSync(fullSourcePath)) {
+      outputChannel.appendLine(`Path of realpath is ${fullSourcePath}`)
+      outputChannel.show()
       let uri = vscode.Uri.file(fullSourcePath);
       console.log(`URI path is ${uri}`);
       vscode.commands.executeCommand('vscode.openFolder', uri)
     }
     else {
+      outputChannel.appendLine(`Resolved realpath is ${fullSourcePath}`)
+      outputChannel.show()
       console.log(`Unable to resolve the symbolic link path ${fullSourcePath}, to an actual path in the system`);
     }
   });
