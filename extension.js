@@ -40,19 +40,32 @@ function activate(context) {
   }
 
   function reverseFileSearch(currentPath, target) {
+    // Check if the target file exists in the current directory
     const filePath = path.join(currentPath, target);
-    
     if (fs.existsSync(filePath)) {
       return filePath;
     }
-    
+  
+    // Recursively search files and folders in the current directory
+    const filesAndFolders = fs.readdirSync(currentPath);
+    for (const item of filesAndFolders) {
+      const itemPath = path.join(currentPath, item);
+      const stats = fs.statSync(itemPath);
+      if (stats.isDirectory()) {
+        const result = reverseFileSearch(itemPath, target);
+        if (result) {
+          return result;
+        }
+      }
+    }
+  
+    // Move to the parent path and check for the stopping condition
     const parentPath = path.dirname(currentPath);
-    
-    // Stop the search if the parent path is the root directory
-    if (parentPath === currentPath) {
+    if (parentPath.toLowerCase() === currentPath.substring(0, 3)) {
       return null;
     }
-    
+  
+    // Recursively search in the parent path
     return reverseFileSearch(parentPath, target);
   }
 
@@ -81,6 +94,8 @@ function activate(context) {
           fullSourcePath = targetPath;
         }
         else {
+          outputChannel.appendLine(`Starting to recursively find target path of file: ${targetPath}`)
+          outputChannel.show()
           const resolvedPath = reverseFileSearch(path.dirname(winPath), targetPath)
           fullSourcePath = resolvedPath;
         }
