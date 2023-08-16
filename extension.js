@@ -61,7 +61,7 @@ function activate(context) {
   
     // Move to the parent path and check for the stopping condition
     const parentPath = path.dirname(currentPath);
-    if (parentPath.toLowerCase() === currentPath.substring(0, 3)) {
+    if (currentPath == parentPath || parentPath.toLowerCase() === currentPath.substring(0, 3)) {
       return null;
     }
   
