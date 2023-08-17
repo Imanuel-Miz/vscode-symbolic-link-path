@@ -39,23 +39,43 @@ function activate(context) {
     }
   }
 
-  function reverseFileSearch(currentPath, target) {
-    // Check if the target file exists in the current directory
-    const filePath = path.join(currentPath, target);
-    if (fs.existsSync(filePath)) {
-      return filePath;
+  function searchFileRecursively(startDir, targetFileName, visitedPaths) {
+    visitedPaths.push(startDir)
+    if (visitedPaths.has(startDir)) {
+      return null
     }
-  
-    // Recursively search files and folders in the current directory
-    const filesAndFolders = fs.readdirSync(currentPath);
-    for (const item of filesAndFolders) {
-      const itemPath = path.join(currentPath, item);
-      const stats = fs.statSync(itemPath);
-      if (stats.isDirectory()) {
-        const result = reverseFileSearch(itemPath, target);
-        if (result) {
-          return result;
+    try {
+      const files = fs.readdirSync(startDir);
+      
+      for (const file of files) {
+        const filePath = path.join(startDir, file);
+        const stats = fs.statSync(filePath);
+        
+        if (stats.isDirectory()) {
+          searchFileRecursively(filePath, targetFileName);
+        } else if (file === targetFileName) {
+          return filePath
         }
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+    return null
+  }
+
+  function reverseFileSearch(currentPath, target, visitedPaths) {
+    if (!visitedPaths.includes(currentPath)) {
+      visitedPaths.push(currentPath)
+      // Check if the target file exists in the current directory
+      const filePath = path.join(currentPath, target);
+      if (fs.existsSync(filePath)) {
+        return filePath;
+      }
+    
+      // Recursively search files and folders in the current directory
+      const result = searchFileRecursively(currentPath, target, visitedPaths);
+      if (result) {
+        return result;
       }
     }
   
@@ -66,7 +86,7 @@ function activate(context) {
     }
   
     // Recursively search in the parent path
-    return reverseFileSearch(parentPath, target);
+    return reverseFileSearch(parentPath, target, visitedPaths);
   }
 
   let disposable = vscode.commands.registerCommand('goToSymbolicLink', file => {
@@ -96,7 +116,7 @@ function activate(context) {
         else {
           outputChannel.appendLine(`Starting to recursively find target path of file: ${targetPath}`)
           outputChannel.show()
-          const resolvedPath = reverseFileSearch(path.dirname(winPath), targetPath)
+          const resolvedPath = reverseFileSearch(path.dirname(winPath), targetPath, [])
           fullSourcePath = resolvedPath;
         }
         }
