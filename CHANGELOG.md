@@ -7,5 +7,5 @@ All notable changes to the "symbolic-link-path" extension will be documented in 
 
 - Initial release
 
-## v0.0.5
+## v0.1.1
 - fixed windows support bug

@@ -41,7 +41,7 @@ function activate(context) {
 
   function searchFileRecursively(startDir, targetFileName, visitedPaths) {
     visitedPaths.push(startDir)
-    if (visitedPaths.has(startDir)) {
+    if (visitedPaths.includes(startDir)) {
       return null
     }
     try {
